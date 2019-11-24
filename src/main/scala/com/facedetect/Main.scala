@@ -13,7 +13,6 @@ import util.control.Breaks._
 import java.util.Base64 //Might not be needed since i have imported all utils.
 //import java.util.Arrays.toString //Might not be needed.
 //import java.awt.Graphics2D
-//import javafx.scene.shape.Box
 
 import org.tensorflow.op.core.Log
 import org.tensorflow.{Graph, Session, Tensor}
@@ -240,6 +239,13 @@ class Mtcnn{
 
   }
 
+  def updateBoxes(boxes: Vector[Box]): Vector[Box] = {
+    val b = new Vector[Box]()
+    for (i <- 0 until boxes.size()) {
+      if (!boxes.get(i).deleted) b.addElement(boxes.get(i))
+    }
+    b
+  }
 
   //Non-Maximum Suppression
   //Nms, the unqualified deleted is set to true
@@ -281,6 +287,84 @@ class Mtcnn{
     }
   }
 
+
+  private def generateBoxes(prob: Array[Array[Float]], bias: Array[Array[Array[Float]]], scale: Float, threshold: Float, boxes: Vector[Box]) = {
+    val h = prob.length
+    val w = prob(0).length
+    //Log.i(TAG,"[*]height:"+prob.length+" width:"+prob[0].length);
+    for (y <- 0 until h) {
+      for (x <- 0 until w) {
+        val score = prob(y)(x)
+        //only accept prob >threadshold(0.6 here)
+        if (score > threshold) {
+          val box = new Box()
+          //score
+          box.score = score
+          //box
+          box.box(0) = x * 2 / scale.round
+          box.box(1) = y * 2 / scale.round
+          box.box(2) = (x * 2 + 11) / scale.round
+          box.box(3) = (y * 2 + 11) / scale.round
+          //bbr
+          for (i <- 0 until 4) {
+            box.bbr(i) = bias(y)(x)(i)
+          }
+          //add
+          boxes.addElement(box)
+        }
+      }
+    }
+    0
+  }
+
+  private def BoundingBoxReggression(boxes: Vector[Box]): Unit = {
+    for(i <- 0 until boxes.size()){
+      boxes.get(i).calibrate
+    }
+  }
+
+  private def PNet(imageBuffer: BufferedImage, minSize: Int) = {
+    val image = imageBuffer.asInstanceOf[BufferedImage]
+    val whMin = min(image.getHeight(), image.getWidth())
+    var currentFaceSize = minSize //currentFaceSize=minSize/(factor^k) k=0,1,2... until excced whMin
+    val totalBoxes = new  Vector[Box]()
+    //【1】Image Paramid and Feed to Pnet
+    while ( {currentFaceSize <= whMin}) {
+      val scale = 12.0f / currentFaceSize
+      //(1)Image Resize
+      val bm = imageResize(imageBuffer, scale)
+      val w = bm.getWidth
+      val h = bm.getHeight
+      //(2)RUN CNN
+      val PNetOutSizeW = (Math.ceil(w * 0.5 - 5) + 0.5).toInt
+      val PNetOutSizeH = (Math.ceil(h * 0.5 - 5) + 0.5).toInt
+      val PNetOutProb = Array.ofDim[Float](PNetOutSizeH, PNetOutSizeW)
+
+      val PNetOutBias = Array.ofDim[Float](PNetOutSizeH, PNetOutSizeW, 4)
+      pnetForward(bm, session = Session, PNetOutProb, PNetOutBias)
+      //(3)数据解析
+      val curBoxes = new Vector[Box]()
+      generateBoxes(PNetOutProb, PNetOutBias, scale, PNetThreshold, curBoxes)
+      //Log.i(TAG,"[*]CNN Output Box number:"+curBoxes.size()+" Scale:"+scale);
+      //(4)nms 0.5
+      nms(curBoxes, 0.5f, "Union")
+      //(5)add to totalBoxes
+      for (i <- 0 until curBoxes.size()){
+        if (!curBoxes.get(i).deleted) totalBoxes.addElement(curBoxes.get(i))
+      }
+      //Face Size等比递增
+      currentFaceSize /= factor
+    }
+    //NMS 0.7
+    nms(totalBoxes, 0.7f, "Union")
+    //BBR
+    BoundingBoxReggression(totalBoxes)
+    updateBoxes(totalBoxes)
+  }
+
+  def trial (): Float = {
+    val arrayTrial = new Array[Float]()
+  }
     object ScalaMtcnn {
 
       def main(args: Array[String]): Unit = {

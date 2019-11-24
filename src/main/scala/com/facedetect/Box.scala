@@ -4,6 +4,7 @@ import java.lang.Math.max
 import java.lang.Math.min
 import java.awt.Point
 import java.awt.Rectangle
+import java.util.Vector
 
 
 class Box() {
@@ -48,7 +49,7 @@ class Box() {
 */
   //面积
   def area: Int = width * height
-/*  //Bounding Box Regression
+  //Bounding Box Regression
   def calibrate(): Unit = {
     val w = box(2) - box(0) + 1
     val h = box(3) - box(1) + 1
@@ -56,64 +57,62 @@ class Box() {
     box(1) = (box(1) + h * bbr(1)).toInt
     box(2) = (box(2) + w * bbr(2)).toInt
     box(3) = (box(3) + h * bbr(3)).toInt
-    var i = 0
-    while ( {
-      i < 4
-    }) bbr(i) = 0.0f {
-      i += 1; i - 1
+    for (i <- 0 until 4){
+      bbr(i) = 0.0f
     }
   }
 
-  //当前box转为正方形
-  def toSquareShape(): Unit = {
-    val w = width
-    val h = height
-    if (w > h) {
-      box(1) -= (w - h) / 2
-      box(3) += (w - h + 1) / 2
+  /*
+    //当前box转为正方形
+    def toSquareShape(): Unit = {
+      val w = width
+      val h = height
+      if (w > h) {
+        box(1) -= (w - h) / 2
+        box(3) += (w - h + 1) / 2
+      }
+      else {
+        box(0) -= (h - w) / 2
+        box(2) += (h - w + 1) / 2
+      }
     }
-    else {
-      box(0) -= (h - w) / 2
-      box(2) += (h - w + 1) / 2
-    }
-  }
 
-  //防止边界溢出，并维持square大小
-  def limit_square(w: Int, h: Int): Unit = {
-    if (box(0) < 0 || box(1) < 0) {
-      val len = max(-box(0), -box(1))
-      box(0) += len
-      box(1) += len
+    //防止边界溢出，并维持square大小
+    def limit_square(w: Int, h: Int): Unit = {
+      if (box(0) < 0 || box(1) < 0) {
+        val len = max(-box(0), -box(1))
+        box(0) += len
+        box(1) += len
+      }
+      if (box(2) >= w || box(3) >= h) {
+        val len = max(box(2) - w + 1, box(3) - h + 1)
+        box(2) -= len
+        box(3) -= len
+      }
     }
-    if (box(2) >= w || box(3) >= h) {
-      val len = max(box(2) - w + 1, box(3) - h + 1)
-      box(2) -= len
-      box(3) -= len
-    }
-  }
 
-  def limit_square2(w: Int, h: Int): Unit = {
-    if (width > w) box(2) -= width - w
-    if (height > h) box(3) -= height - h
-    if (box(0) < 0) {
-      val sz = -box(0)
-      box(0) += sz
-      box(2) += sz
-    }
-    if (box(1) < 0) {
-      val sz = -box(1)
-      box(1) += sz
-      box(3) += sz
-    }
-    if (box(2) >= w) {
-      val sz = box(2) - w + 1
-      box(2) -= sz
-      box(0) -= sz
-    }
-    if (box(3) >= h) {
-      val sz = box(3) - h + 1
-      box(3) -= sz
-      box(1) -= sz
-    }
-  }*/area
+    def limit_square2(w: Int, h: Int): Unit = {
+      if (width > w) box(2) -= width - w
+      if (height > h) box(3) -= height - h
+      if (box(0) < 0) {
+        val sz = -box(0)
+        box(0) += sz
+        box(2) += sz
+      }
+      if (box(1) < 0) {
+        val sz = -box(1)
+        box(1) += sz
+        box(3) += sz
+      }
+      if (box(2) >= w) {
+        val sz = box(2) - w + 1
+        box(2) -= sz
+        box(0) -= sz
+      }
+      if (box(3) >= h) {
+        val sz = box(3) - h + 1
+        box(3) -= sz
+        box(1) -= sz
+      }
+    }*/area
 }
